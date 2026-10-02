@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/components/cart/CartProvider";
 
-export default function VerifyPage() {
+function VerifyInner() {
   const params = useSearchParams();
   const router = useRouter();
   const { items, clear } = useCart();
@@ -25,7 +25,6 @@ export default function VerifyPage() {
         setError("Your session expired after payment. Please rebuild your cart and try again.");
         return;
       }
-    (async () => {
       try {
         const res = await fetch("/api/orders", {
           method: "POST",
@@ -63,5 +62,13 @@ export default function VerifyPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<p className="mx-auto max-w-md px-4 pt-16 text-center text-sm">Confirming payment...</p>}>
+      <VerifyInner />
+    </Suspense>
   );
 }

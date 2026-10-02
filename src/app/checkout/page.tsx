@@ -32,7 +32,7 @@ export default function CheckoutPage() {
     if (form.fulfilment_method === "delivery" && !form.delivery_address) { setError("Please enter a delivery address."); return; }
     setLoading(true);
     try {
-      const sb = createClient();
+      const sb: any = createClient();
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { router.push("/login"); return; }
       // STEP 1 — server prices the order and returns a Paystack link

@@ -8,7 +8,7 @@ export default function LoginPage() {
   async function google() {
     setError("");
     try {
-      const sb = createClient();
+      const sb: any = createClient();
       const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback` } });
       if (error) setError("Something went wrong. Please try again.");
     } catch { setError("Something went wrong. Please try again."); router.refresh(); }
