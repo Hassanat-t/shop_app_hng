@@ -11,6 +11,7 @@ const sans = Nunito_Sans({ variable: "--font-sans", subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "tt's pink oven | Thin Cookies & Boba",
   description: "Freshly baked thin cookies and delicious boba made with love.",
+  icons: { icon: "/icon.png", apple: "/icon.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

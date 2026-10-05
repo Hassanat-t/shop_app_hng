@@ -18,3 +18,8 @@ drop policy if exists "users read own items" on order_items;
 create policy "users read own items" on order_items for select using (exists (select 1 from orders o where o.id = order_id and o.user_id = auth.uid()));
 drop policy if exists "users read own profile" on profiles;
 create policy "users read own profile" on profiles for select using (auth.uid() = id);
+-- Signup upserts the caller's own profile row (id = auth.uid()).
+drop policy if exists "users insert own profile" on profiles;
+create policy "users insert own profile" on profiles for insert with check (auth.uid() = id);
+drop policy if exists "users update own profile" on profiles;
+create policy "users update own profile" on profiles for update using (auth.uid() = id) with check (auth.uid() = id);
