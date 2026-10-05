@@ -10,6 +10,13 @@ String optionsSig(List<CartOption> options) {
   return parts.join(',');
 }
 
+/// Thrown when the phone has no network path to Supabase: carries the bundled
+/// menu so the UI can still render products + SVG art offline.
+class FallbackProductsException implements Exception {
+  final List<Product> products;
+  const FallbackProductsException(this.products);
+}
+
 class ShopBackend {
   static SupabaseClient get _db => Supabase.instance.client;
 
@@ -48,16 +55,35 @@ class ShopBackend {
   /// id/secret as the website), plus an Android OAuth client for this app's
   /// package (see mobile/GOOGLE_SETUP.md). No password is ever stored.
   static Future<void> signInWithGoogle() async {
+    final serverId = AppConfig.googleWebClientId.trim();
+    if (serverId.isEmpty) {
+      throw StateError(
+        'Google sign-in is not configured. Run with '
+        '--dart-define=GOOGLE_WEB_CLIENT_ID=xxx.apps.googleusercontent.com '
+        '(see mobile/GOOGLE_SETUP.md). Email login works now.',
+      );
+    }
     final google = GoogleSignIn(
-      serverClientId: AppConfig.googleWebClientId.isEmpty
-          ? null
-          : AppConfig.googleWebClientId,
+      serverClientId: serverId,
+      scopes: const ['email', 'openid'],
     );
+    // google_sign_in v6 caches the last account: a previous token-less login
+    // is silently reused and fails with a null idToken every retry. Sign out
+    // first so each attempt does a fresh native sign-in.
+    try {
+      await google.signOut();
+    } catch (_) {}
     final account = await google.signIn();
     if (account == null) throw StateError('Google sign-in cancelled.');
     final auth = await account.authentication;
     final idToken = auth.idToken;
-    if (idToken == null) throw StateError('Google sign-in failed. Try again.');
+    if (idToken == null || idToken.isEmpty) {
+      throw StateError(
+        'Google did not return an ID token. Add an Android OAuth client for '
+        'com.ttpinkoven.tt_pink_oven_mobile with this device\'s SHA-1 in '
+        'Google Cloud (see mobile/GOOGLE_SETUP.md), then try again.',
+      );
+    }
     await _db.auth.signInWithIdToken(
       provider: OAuthProvider.google,
       idToken: idToken,
@@ -66,8 +92,30 @@ class ShopBackend {
   }
 
   static Future<List<Product>> fetchProducts() async {
-    final rows = await _db.from('products').select().eq('is_active', true).order('created_at');
-    return (rows as List).map((r) => Product.fromJson(Map<String, dynamic>.from(r as Map))).toList();
+    try {
+      final rows =
+          await _db.from('products').select().eq('is_active', true).order('created_at');
+      final list =
+          (rows as List).map((r) => Product.fromJson(Map<String, dynamic>.from(r as Map))).toList();
+      if (list.isEmpty) return fallbackProducts;
+      return list;
+    } catch (e) {
+      // No network (DNS/host-lookup failure, airplane mode, emulator offline):
+      // serve the bundled menu so the shop still renders with art. The caller
+      // still surfaces a friendly banner via friendlyNetworkError.
+      final s = '$e'.toLowerCase();
+      if (s.contains('failed host lookup') ||
+          s.contains('no address associated with hostname') ||
+          s.contains('socketexception') ||
+          s.contains('network is unreachable') ||
+          s.contains('connection refused') ||
+          s.contains('connection timed out') ||
+          s.contains('timeoutexception') ||
+          s.contains('clientexception')) {
+        throw FallbackProductsException(fallbackProducts);
+      }
+      rethrow;
+    }
   }
 
   static Future<List<CartLine>> fetchCart() async {

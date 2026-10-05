@@ -94,7 +94,7 @@ class MenuTab extends StatelessWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 0.62,
+                childAspectRatio: 0.52,
               ),
               itemCount: shown.length,
               itemBuilder: (context, i) {

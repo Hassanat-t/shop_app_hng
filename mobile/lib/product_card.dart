@@ -42,7 +42,9 @@ class ProductCard extends StatelessWidget {
             onTap: onTap,
             child: ProductImage(
               imageUrl: product.imageUrl,
-              size: double.infinity,
+              width: double.infinity,
+              height: 118,
+              size: null,
               radius: 12,
             ),
           ),
@@ -60,7 +62,10 @@ class ProductCard extends StatelessWidget {
             ),
           GestureDetector(
             onTap: onTap,
-            child: Text(product.name, style: sansStyle(size: 15, color: wine, weight: FontWeight.w700)),
+            child: Text(product.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: sansStyle(size: 15, color: wine, weight: FontWeight.w700)),
           ),
           const SizedBox(height: 2),
           Text(

@@ -42,12 +42,21 @@ class PinkOvenShopState extends State<PinkOvenShop> {
     loadCart();
   }
 
+  bool offlineMenu = false;
+
   Future<void> loadProducts() async {
     setState(() { loadingProducts = true; productsError = null; });
     try {
       products = await ShopBackend.fetchProducts();
+      offlineMenu = false;
+    } on FallbackProductsException catch (e) {
+      // No network path to Supabase (your SocketException/host-lookup): show
+      // the bundled menu + art so the shop is usable, with a retry banner.
+      products = e.products;
+      offlineMenu = true;
+      productsError = 'Offline mode — showing saved menu. Check your internet, then tap RETRY.';
     } catch (e) {
-      productsError = '$e'.replaceAll('Exception: ', '');
+      productsError = friendlyNetworkError(e);
     }
     if (mounted) setState(() => loadingProducts = false);
   }
@@ -64,7 +73,7 @@ class PinkOvenShopState extends State<PinkOvenShop> {
       // Never swallow this: a blocked RLS policy or a missing cart_items table
       // used to render as "Your cart is empty", which is indistinguishable
       // from a genuinely empty cart and silently breaks the sync demo.
-      if (mounted) setState(() => cartError = '$e'.replaceAll('Exception: ', ''));
+      if (mounted) setState(() => cartError = friendlyNetworkError(e));
     }
     if (mounted) setState(() => loadingCart = false);
   }
@@ -167,22 +176,57 @@ class PinkOvenShopState extends State<PinkOvenShop> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: tab,
+      body: Column(
         children: [
-          HomeTabView(host: this, best: best.isEmpty ? products.take(4).toList() : best),
-          MenuTab(
-            shown: shown, filter: filter, loading: loadingProducts, error: productsError,
-            onRetry: loadProducts, onFilter: setFilter,
-            onAdd: (p) => add(p), onDec: dec, onOpen: openProduct, qtyBySlug: qtyBySlug,
+          if (offlineMenu && products.isNotEmpty)
+            Material(
+              color: const Color(0xFFFFF3E0),
+              child: InkWell(
+                onTap: loadProducts,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.wifi_off_outlined, size: 16, color: Color(0xFF9C6B00)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Offline — showing saved menu. Tap to retry.',
+                          style: sansStyle(size: 12, color: const Color(0xFF9C6B00), weight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          Expanded(
+            child: IndexedStack(
+              index: tab,
+              children: [
+                HomeTabView(host: this, best: best.isEmpty ? products.take(4).toList() : best),
+                MenuTab(
+                  shown: shown,
+                  filter: filter,
+                  loading: loadingProducts,
+                  error: (offlineMenu && shown.isNotEmpty) ? null : productsError,
+                  onRetry: loadProducts,
+                  onFilter: setFilter,
+                  onAdd: (p) => add(p),
+                  onDec: dec,
+                  onOpen: openProduct,
+                  qtyBySlug: qtyBySlug,
+                ),
+                CartTab(
+                  cart: cart, loading: loadingCart, subtotal: subtotal, error: cartError, onRefresh: loadCart,
+                  onSetQty: setLineQty, onCheckout: () => goTab(3),
+                  onContinueShopping: () => goTab(1),
+                ),
+                CheckoutTab(onLoadCart: loadCart, onBrowseMenu: () => goTab(1)),
+                AccountTabView(host: this),
+              ],
+            ),
           ),
-          CartTab(
-            cart: cart, loading: loadingCart, subtotal: subtotal, error: cartError, onRefresh: loadCart,
-            onSetQty: setLineQty, onCheckout: () => goTab(3),
-            onContinueShopping: () => goTab(1),
-          ),
-          CheckoutTab(onLoadCart: loadCart, onBrowseMenu: () => goTab(1)),
-          AccountTabView(host: this),
         ],
       ),
       bottomNavigationBar: NavigationBar(

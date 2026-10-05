@@ -25,9 +25,13 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       final s = '$e';
       setState(() {
-        error = s.contains('GOOGLE_WEB_CLIENT_ID') || s.contains('ApiException: 10')
+        error = s.contains('GOOGLE_WEB_CLIENT_ID') ||
+                s.contains('not configured') ||
+                s.contains('ApiException: 10')
             ? 'Google sign-in needs one-time setup (see mobile/GOOGLE_SETUP.md). Email login works now.'
-            : s.replaceAll('Exception: ', '');
+            : s.contains('did not return an ID token')
+                ? '$s Email login works now.'
+                : s.replaceAll('Exception: ', '');
       });
     } finally {
       if (mounted) setState(() => googleBusy = false);

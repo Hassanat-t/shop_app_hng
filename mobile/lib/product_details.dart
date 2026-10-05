@@ -116,7 +116,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             borderRadius: BorderRadius.circular(24),
             child: Container(
               color: Colors.amber,
-              child: ProductImage(imageUrl: p.imageUrl, size: double.infinity, radius: 24),
+              child: ProductImage(
+                  imageUrl: p.imageUrl,
+                  width: double.infinity,
+                  height: 320,
+                  size: null,
+                  radius: 24),
             ),
           ),
           const SizedBox(height: 18),
@@ -214,19 +219,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             Text('You may also like', style: TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             SizedBox(
-              height: 120,
+              height: 300,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
                   for (final related in widget.related)
-                    Padding(
-                      padding: EdgeInsets.only(right: 12),
-                      child: ProductCard(
-                        product: related,
-                        qtyInCart: widget.qtyBySlug[related.slug] ?? 0,
-                        onInc: () => widget.onAdd(related, 1, []),
-                        onDec: () => widget.onDec(related),
-                        onTap: () => widget.onOpen(related),
+                    SizedBox(
+                      width: 180,
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 12),
+                        child: ProductCard(
+                          product: related,
+                          qtyInCart: widget.qtyBySlug[related.slug] ?? 0,
+                          onInc: () => widget.onAdd(related, 1, []),
+                          onDec: () => widget.onDec(related),
+                          onTap: () => widget.onOpen(related),
+                        ),
                       ),
                     ),
                 ],
