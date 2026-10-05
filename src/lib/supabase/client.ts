@@ -9,6 +9,10 @@ export function createClient(): any {
         getSession: async () => ({ data: { session: null } }),
         getUser: async () => ({ data: { user: null } }),
         signInWithOAuth: async () => ({ error: { message: "Supabase not configured. Run: npm install @supabase/ssr @supabase/supabase-js zod" } }),
+        signInWithPassword: async () => ({ error: { message: "Supabase not configured." } }),
+        signUp: async () => ({ error: { message: "Supabase not configured." } }),
+        signOut: async () => ({ error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       },
     };
   }
