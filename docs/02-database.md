@@ -49,9 +49,19 @@ SQL files: [`supabase/schema.sql`](../supabase/schema.sql),
 | `unit_price` / `quantity` / `line_total` | integer | Server-computed |
 
 ### `pending_payments`
-Tracks Paystack initializations so `/checkout/verify` can reconcile.
-Service-role only (no public RLS policies). Created by
-[`supabase/paystack.sql`](../supabase/paystack.sql).
+Stores each Paystack checkout before payment: unique `reference`, owner,
+the form `payload`, the priced `lines`, and `subtotal` / `delivery_fee` /
+`total` (naira). `status` goes `initialized` → `completed` when the order
+is created. Service-role only (no public RLS policies). Created by
+[`supabase/paystack.sql`](../supabase/paystack.sql); `lines` added by
+[`supabase/payments-hardening.sql`](../supabase/payments-hardening.sql).
+
+### `place_order(p_order, p_items, p_reference)`
+Creates an order and its items in one transaction and returns
+`order_id, order_number, created`. With a reference it is idempotent: it
+locks the `pending_payments` row, and if an order already exists for that
+reference it returns it with `created = false`. A unique index on
+`orders.payment_reference` backs this up. Executable by the service role only.
 
 ## Row Level Security
 
