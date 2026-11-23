@@ -1,4 +1,6 @@
-export function createClient(): any {
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+export function createClient(): SupabaseClient {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createBrowserClient } = require("@supabase/ssr");
@@ -14,7 +16,7 @@ export function createClient(): any {
         signOut: async () => ({ error: null }),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       },
-    };
+    } as unknown as SupabaseClient;
   }
 }
 

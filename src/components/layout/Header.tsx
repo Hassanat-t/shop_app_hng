@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/cart/CartProvider";
+import type { Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Header() {
@@ -17,13 +18,13 @@ export default function Header() {
     let sub: { unsubscribe: () => void } | null = null;
     (async () => {
       try {
-        const sb: any = createClient();
+        const sb = createClient();
         const { data: { session } } = await sb.auth.getSession();
         if (!off) {
           setEmail(session?.user?.email ?? null);
           setAuthChecked(true);
         }
-        const { data } = sb.auth.onAuthStateChange((_e: string, s: any) => {
+        const { data } = sb.auth.onAuthStateChange((_e: string, s: Session | null) => {
           if (off) return;
           setEmail(s?.user?.email ?? null);
           setAuthChecked(true);
@@ -38,7 +39,7 @@ export default function Header() {
 
   async function logout() {
     try {
-      const sb: any = createClient();
+      const sb = createClient();
       await sb.auth.signOut();
     } catch { /* still leave */ }
     setEmail(null);

@@ -5,7 +5,7 @@ const useDb = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
 export async function getProducts(): Promise<Product[]> {
   if (!useDb) return PRODUCTS;
   try {
-    const sb: any = await createClient();
+    const sb = await createClient();
     const { data } = await sb.from("products").select("*").eq("is_active", true).order("created_at");
     if (!data?.length) return PRODUCTS;
     return data as Product[];

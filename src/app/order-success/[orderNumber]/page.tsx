@@ -11,7 +11,7 @@ export default async function OrderSuccess({ params }: { params: Promise<{ order
   let items: { product_name: string; quantity: number; line_total: number }[] = [];
   try {
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const sb: any = await createClient();
+      const sb = await createClient();
       const { data } = await sb.from("orders").select("*").eq("order_number", orderNumber).single();
       if (data) {
         order = data;

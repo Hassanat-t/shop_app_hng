@@ -22,7 +22,7 @@ export default function SignupPage() {
     if (password !== confirm) { setError("Passwords do not match."); return; }
     setBusy(true);
     try {
-      const sb: any = createClient();
+      const sb = createClient();
       // Same Supabase Auth project the Flutter app uses — same user id both sides.
       const { data, error } = await sb.auth.signUp({ email: email.trim(), password });
       if (error) { setError(error.message); return; }

@@ -14,7 +14,7 @@ export default function LoginPage() {
   async function google() {
     setError("");
     try {
-      const sb: any = createClient();
+      const sb = createClient();
       const { error } = await sb.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -35,7 +35,7 @@ export default function LoginPage() {
     if (!password) { setError("Enter your password."); return; }
     setBusy(true);
     try {
-      const sb: any = createClient();
+      const sb = createClient();
       const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
       if (error) { setError(friendly(error.message)); return; }
       router.push("/");
