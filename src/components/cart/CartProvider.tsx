@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { CartItem, CartOption, Product } from "@/types";
 
@@ -55,15 +56,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [synced, setSynced] = useState(false);
+  // The user whose shared cart is loaded; synced only while it matches the current user.
+  const [syncedFor, setSyncedFor] = useState<string | null>(null);
   const uidRef = useRef<string | null>(null);
-  uidRef.current = userId;
+  useEffect(() => { uidRef.current = userId; }, [userId]);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as CartItem[];
+        // localStorage is only readable after mount (reading it during render would break hydration).
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setItems(mergeItems(Array.isArray(parsed) ? parsed : []));
       }
     } catch { /* start with an empty cart */ }
@@ -72,10 +76,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     let sub: { unsubscribe: () => void } | null = null;
     (async () => {
       try {
-        const sb: any = createClient();
+        const sb = createClient();
         const { data: { session } } = await sb.auth.getSession();
         if (!off) setUserId(session?.user?.id ?? null);
-        const { data } = sb.auth.onAuthStateChange((_e: string, s: any) => {
+        const { data } = sb.auth.onAuthStateChange((_e: string, s: Session | null) => {
           if (!off) setUserId(s?.user?.id ?? null);
         });
         sub = data?.subscription ?? null;
@@ -112,12 +116,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // When logged in: upload guest lines once, load shared cart, subscribe realtime.
   useEffect(() => {
-    if (!loaded || !userId) { setSynced(false); return; }
+    if (!loaded || !userId) return;
     let off = false;
-    let channel: any = null;
+    let channel: RealtimeChannel | null = null;
     (async () => {
       try {
-        const sb: any = createClient();
+        const sb = createClient();
         const guest = mergeItems(items);
         for (const g of guest.slice(0, 50)) {
           await fetch("/api/cart", {
@@ -126,7 +130,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({ product_id: g.product.id, slug: g.product.slug, quantity: g.quantity, options: g.options ?? [] }),
           });
         }
-        if (!off) { await pullShared(); setSynced(true); }
+        if (!off) { await pullShared(); setSyncedFor(userId); }
         try {
           channel = sb.channel(`cart-${userId}`)
             .on("postgres_changes", { event: "*", schema: "public", table: "cart_items", filter: `user_id=eq.${userId}` }, () => { void pullShared(); })
@@ -134,7 +138,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } catch { /* realtime optional */ }
       } catch { /* stay on local cart */ }
     })();
-    return () => { off = true; try { channel?.unsubscribe?.(); } catch { /* noop */ } };
+    return () => { off = true; try { void channel?.unsubscribe(); } catch { /* noop */ } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, userId]);
 
@@ -145,7 +149,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     return () => { window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const value = useMemo<CartCtx>(() => {
@@ -154,7 +157,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       items,
       count: items.reduce((s, i) => s + i.quantity, 0),
       subtotal: items.reduce((s, i) => s + priceOf(i) * i.quantity, 0),
-      synced: !!uidRef.current && synced,
+      synced: !!userId && syncedFor === userId,
       add: (p, qty = 1, options) => {
         const opts = normalizeOptions(options);
         const lineKey = keyFor(p, opts);
@@ -180,7 +183,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setItems([]);
       },
     };
-  }, [items, synced]);
+  }, [items, userId, syncedFor]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

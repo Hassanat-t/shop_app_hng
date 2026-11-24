@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+type CartRow = {
+  quantity: number;
+  options: { label: string; value: string }[] | null;
+  product: { id: string; slug: string } | null;
+};
+
 function sigOf(options: { label: string; value: string }[] = []) {
   return [...options]
     .map((o) => `${o.label}=${o.value}`)
@@ -10,7 +16,7 @@ function sigOf(options: { label: string; value: string }[] = []) {
 
 // GET /api/cart — authenticated user's server-side cart (shared with mobile app)
 export async function GET() {
-  const sb: any = await createClient();
+  const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ items: [] }, { status: 401 });
   const { data, error } = await sb
@@ -19,20 +25,21 @@ export async function GET() {
     .eq("user_id", user.id)
     .order("created_at");
   if (error) return NextResponse.json({ error: "Could not load cart." }, { status: 500 });
-  const items = (data ?? [])
-    .filter((r: any) => r.product)
-    .map((r: any) => ({
+  // products(*) is a many-to-one join, so PostgREST returns one object (the untyped client assumes an array).
+  const items = ((data ?? []) as unknown as CartRow[])
+    .filter((r) => r.product)
+    .map((r) => ({
       product: r.product,
       quantity: r.quantity,
       options: r.options ?? [],
-      lineKey: `${r.product.slug || r.product.id}|${sigOf(r.options ?? [])}`,
+      lineKey: `${r.product!.slug || r.product!.id}|${sigOf(r.options ?? [])}`,
     }));
   return NextResponse.json({ items });
 }
 
 // POST /api/cart — upsert a line: { product_id, quantity, options? }
 export async function POST(req: Request) {
-  const sb: any = await createClient();
+  const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required." }, { status: 401 });
   const body = await req.json().catch(() => null) as {
@@ -67,7 +74,7 @@ export async function POST(req: Request) {
 
 // DELETE /api/cart — clear whole cart (mobile + website "clear" after order)
 export async function DELETE() {
-  const sb: any = await createClient();
+  const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required." }, { status: 401 });
   await sb.from("cart_items").delete().eq("user_id", user.id);

@@ -7,14 +7,14 @@ import { formatNGN } from "@/data/products";
 export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
-  const sb: any = await createClient();
+  const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) redirect("/login");
   let orders: { order_number: string; created_at: string; total: number; status: string; fulfilment_method: string }[] = [];
   try {
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
       const { createServiceClient } = await import("@/lib/supabase/server");
-      const svc: any = createServiceClient();
+      const svc = createServiceClient();
       const { data } = await svc.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
       orders = data ?? [];
     }

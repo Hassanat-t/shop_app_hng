@@ -1,4 +1,6 @@
-export async function createClient(): Promise<any> {
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+export async function createClient(): Promise<SupabaseClient> {
   // SSR Supabase client. Requires: npm install @supabase/ssr @supabase/supabase-js
   // Falls back gracefully when env/ deps are missing so `npm run build` works pre-setup.
   try {
@@ -19,10 +21,10 @@ export async function createClient(): Promise<any> {
     return {
       auth: { getUser: async () => ({ data: { user: null } }) },
       from: () => ({ select: () => ({ eq: () => ({ order: async () => ({ data: [] }) }), single: async () => ({ data: null }) }) }),
-    };
+    } as unknown as SupabaseClient;
   }
 }
-export function createServiceClient(): any {
+export function createServiceClient(): SupabaseClient {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { createClient } = require("@supabase/supabase-js");
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
