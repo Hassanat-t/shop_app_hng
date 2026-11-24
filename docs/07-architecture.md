@@ -32,8 +32,10 @@ Paystack checkout → /checkout/verify?reference=...
 - Cart: `CartProvider` (React context) + `localStorage` (`tpo-cart-v1`).
   Lines merge by **slug + options** so Supabase/fallback ID differences
   never create duplicates (`mergeItems` on add + on load).
-- Pending checkout snapshot: `tpo-pending-order` in localStorage, consumed
-  by the verify page; server also caches to `pending_payments` (best-effort).
+- Pending checkout: the server saves the priced order and its lines in
+  `pending_payments` at init (required). The verify page sends only the
+  payment reference; the webhook uses the same row. `tpo-pending-order` in
+  localStorage only keeps the checkout form filled in.
 
 ## Key modules
 

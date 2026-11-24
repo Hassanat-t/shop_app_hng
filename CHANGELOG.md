@@ -4,6 +4,14 @@ All notable changes to tt's pink oven.
 
 ## Unreleased
 
+- Payments hardening (`supabase/payments-hardening.sql`):
+  - One order per Paystack reference: unique index + idempotent
+    `place_order()`; refreshing the verify page returns the same order.
+  - Order and items saved in one database transaction.
+  - Paystack webhook (`/api/paystack/webhook`) with signature check, so an
+    order is created even if the customer closes the tab after paying.
+  - Order logic shared in `src/lib/orders.ts`; email sent once per order.
+
 - Paystack test-mode payments (init → redirect → server-side verify).
 - `pending_payments` table + payment columns (`supabase/paystack.sql`).
 - Cart merges by slug + options (no duplicate rows).

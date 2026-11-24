@@ -48,6 +48,9 @@ In Supabase → SQL Editor, run in order:
 2. `supabase/seed.sql` — the 8 starter products (NGN placeholder prices).
 3. `supabase/paystack.sql` — `pending_payments` table + payment columns
    on `orders`.
+4. `supabase/payments-hardening.sql` — unique payment reference and the
+   `place_order()` function (atomic, exactly-once orders). Required for
+   Paystack checkout.
 
 See [02-database.md](./02-database.md) for the full schema reference.
 
