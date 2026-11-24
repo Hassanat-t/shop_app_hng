@@ -15,17 +15,19 @@ Registry is slow — retry. Verify with `npm ping`. Install in two steps:
 ## "Could not start payment" on checkout
 - `PAYSTACK_SECRET_KEY` missing/wrong (must be `sk_test_...`, server-only).
 - Look at the terminal: `Paystack init failed ...` has the real reason.
-- `pending_payments` insert failure is non-fatal (run
-  `supabase/paystack.sql` to silence it).
+- `pending_payments insert failed` in the terminal: run
+  `supabase/paystack.sql` and `supabase/payments-hardening.sql`. Payment
+  now refuses to start without it, so a paid order can always be completed.
 
 ## Button says "PLACE ORDER" instead of "PAY ... WITH PAYSTACK"
 `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` isn't reaching the browser — add it to
 `.env.local` (and Vercel env) and restart/redeploy.
 
-## `/checkout/verify` says "session expired"
-Old bug (fixed): the page verified before the cart hydrated. Pull latest.
-If it persists, the `tpo-pending-order` localStorage entry is gone —
-rebuild the cart and retry; the reference is shown on screen for Paystack
+## `/checkout/verify` says "We couldn't find this payment"
+The verify page no longer depends on the cart: it sends only the payment
+reference. This error means no `pending_payments` row exists for that
+reference (payment started before `payments-hardening.sql` was run, or a
+different database). The reference is shown on screen for Paystack
 dashboard lookup.
 
 ## "Payment amount mismatch"
